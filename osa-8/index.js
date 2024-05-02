@@ -99,17 +99,25 @@ let books = [
 
 const typeDefs = `
   type Book {
+    id: ID!
     title: String!
     published: Int!
     author: String!
     genres: [String!]!
+  }
+
+  type Author {
     id: ID!
+    name: String!
+    born: Int
+    bookCount: Int!
   }
 
   type Query {
     bookCount: Int!
     authorCount: Int!
     allBooks: [Book!]!
+    allAuthors: [Author!]!
   }
 `
 
@@ -118,7 +126,19 @@ const resolvers = {
         bookCount: () => books.length,
         authorCount: () => authors.length,
         allBooks: () => books,
-    }
+        allAuthors: () => authors,
+    },
+
+    Author: {
+        bookCount: ({ name }) => {
+            let count = 0;
+            for (const book of books) {
+                if (book.author === name)
+                    count++;
+            }
+            return count;
+        },
+    },
 }
 
 const server = new ApolloServer({
