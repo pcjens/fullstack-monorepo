@@ -1,8 +1,10 @@
 {
   "name": "osa-8-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -10,7 +12,10 @@
   "description": "",
   "dependencies": {
     "@apollo/server": "^4.10.4",
+    "dotenv": "^16.4.5",
     "graphql": "^16.8.1",
+    "mongoose": "^8.3.3",
+    "mongoose-unique-validator": "^5.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
