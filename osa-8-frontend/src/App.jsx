@@ -5,7 +5,7 @@ import Books from "./components/Books";
 import NewBook from "./components/NewBook";
 import Login from "./components/Login";
 import Recommendations from "./components/Recommendations";
-import { BOOK_ADDED } from "./queries";
+import { ALL_AUTHORS_QUERY_NAME, ALL_BOOKS_QUERY_NAME, ALL_GENRES_QUERY_NAME, BOOK_ADDED } from "./queries";
 
 const App = () => {
   const [page, setPage] = useState("authors");
@@ -27,6 +27,9 @@ const App = () => {
 
   useSubscription(BOOK_ADDED, {
     onData: ({ data: { data: { bookAdded } } }) => {
+      apolloClient.refetchQueries({
+        include: [ALL_BOOKS_QUERY_NAME, ALL_AUTHORS_QUERY_NAME, ALL_GENRES_QUERY_NAME],
+      });
       alert(`New book: ${bookAdded.title} by ${bookAdded.author.name}`);
     }
   })
