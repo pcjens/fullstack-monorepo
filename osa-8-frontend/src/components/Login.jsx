@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/client'
 import { useState } from 'react'
-import { LOGIN } from '../queries'
+import { LOGIN, ME_QUERY_NAME } from '../queries'
 
 const Login = ({ show, setToken, setPage, prevPage }) => {
   const [username, setUsername] = useState('');
@@ -8,6 +8,7 @@ const Login = ({ show, setToken, setPage, prevPage }) => {
   const [error, setError] = useState(null);
 
   const [login] = useMutation(LOGIN, {
+    refetchQueries: [ME_QUERY_NAME],
     onError: (err) => setError(err.message),
   });
 
