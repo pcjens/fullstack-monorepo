@@ -1,14 +1,24 @@
 const { ApolloServer } = require('@apollo/server')
-const { startStandaloneServer } = require('@apollo/server/standalone');
 const { GraphQLError } = require('graphql');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const { expressMiddleware } = require('@apollo/server/express4');
+const { ApolloServerPluginDrainHttpServer } = require('@apollo/server/plugin/drainHttpServer');
+const { makeExecutableSchema } = require('@graphql-tools/schema');
+const express = require('express');
+const cors = require('cors');
+const http = require('http');
+const { WebSocketServer } = require('ws');
+const graphqlWs = require('graphql-ws/lib/use/ws');
+const { PubSub } = require('graphql-subscriptions');
 
 const Author = require('./models/author');
 const Book = require('./models/book');
 const User = require('./models/user');
 
 require('dotenv').config();
+
+const pubsub = new PubSub();
 
 let authorsTestData = [
     {
@@ -142,6 +152,10 @@ const typeDefs = `
         password: String!
     ): Token
   }
+
+  type Subscription {
+    bookAdded: Book!
+  }
 `;
 
 const resolvers = {
@@ -199,6 +213,9 @@ const resolvers = {
                     }
                 });
             }
+
+            pubsub.publish('BOOK_ADDED', { bookAdded: newBook });
+
             return newBook;
         },
 
@@ -259,6 +276,12 @@ const resolvers = {
         },
     },
 
+    Subscription: {
+        bookAdded: {
+            subscribe: () => pubsub.asyncIterator('BOOK_ADDED'),
+        },
+    },
+
     Book: {
         author: async ({ author }) => Author.findById(author),
     },
@@ -301,11 +324,36 @@ const main = async () => {
         await user.save();
     }
 
-    const server = new ApolloServer({ typeDefs, resolvers });
-    try {
-        const { url } = await startStandaloneServer(server, {
-            listen: { port: 4000 },
-            context: async ({ req, res }) => {
+    const app = express();
+    const httpServer = http.createServer(app);
+    const wsServer = new WebSocketServer({
+        server: httpServer,
+        path: '/',
+    });
+    const schema = makeExecutableSchema({ typeDefs, resolvers });
+    const wsServerDisposable = graphqlWs.useServer({ schema }, wsServer);
+    const server = new ApolloServer({
+        schema,
+        plugins: [
+            ApolloServerPluginDrainHttpServer({ httpServer }),
+            {
+                async serverWillStart() {
+                    return {
+                        async drainServer() {
+                            await wsServerDisposable.dispose();
+                        },
+                    };
+                }
+            },
+        ],
+    });
+    await server.start();
+    app.use(
+        '/',
+        cors(),
+        express.json(),
+        expressMiddleware(server, {
+            context: async ({ req }) => {
                 const auth = req?.headers.authorization ?? '';
                 let user = null;
                 if (auth.startsWith('Bearer ')) {
@@ -313,13 +361,13 @@ const main = async () => {
                     user = await User.findById(id);
                 }
                 return { user };
-            }
-        });
-        console.log(`Apollo (GraphQL) server ready at: ${url}`);
-    } catch (error) {
-        console.error('Failed to start Apollo server:', error.message);
-        process.exit(1);
-    }
+            },
+        }),
+    );
+
+    const port = 4000;
+    httpServer.listen(port,
+        () => console.log(`Apollo (GraphQL) server ready at: http://localhost:${port}`));
 };
 
 main();
