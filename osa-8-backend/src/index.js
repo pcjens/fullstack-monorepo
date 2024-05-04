@@ -145,7 +145,8 @@ const resolvers = {
     Mutation: {
         addBook: async (root, args) => {
             const { title, author } = args;
-            if (await Book.findOne({ title, author }) != null) {
+            let authorObj = await Author.findOne({ name: author });
+            if (authorObj && await Book.findOne({ title, author: authorObj._id }) != null) {
                 throw new GraphQLError(`A book by this title by this author already exists in the database!`, {
                     extensions: {
                         code: 'BAD_USER_INPUT',
@@ -154,25 +155,24 @@ const resolvers = {
                 });
             }
 
-            const newBook = new Book({ ...args });
-            let authorObj = await Author.findOne({ name: author });
             if (authorObj == null) {
                 authorObj = new Author({ name: author });
                 await authorObj.save();
             }
-            newBook.author = authorObj._id;
+
+            const newBook = new Book({ ...args, author: authorObj._id });
             await newBook.save();
             return newBook;
         },
 
-        editAuthor: async (root, { name }) => {
+        editAuthor: async (root, { name, setBornTo }) => {
             const author = await Author.findOne({ name });
             if (author == null) {
                 return null;
             }
 
-            if (args.setBornTo) {
-                author.born = args.setBornTo;
+            if (setBornTo) {
+                author.born = setBornTo;
             }
 
             await author.save();
