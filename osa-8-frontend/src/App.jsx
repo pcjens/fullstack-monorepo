@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient, useSubscription } from "@apollo/client";
 import Authors from "./components/Authors";
 import Books from "./components/Books";
 import NewBook from "./components/NewBook";
 import Login from "./components/Login";
 import Recommendations from "./components/Recommendations";
+import { BOOK_ADDED } from "./queries";
 
 const App = () => {
   const [page, setPage] = useState("authors");
@@ -23,6 +24,12 @@ const App = () => {
     localStorage.clear();
     apolloClient.resetStore();
   };
+
+  useSubscription(BOOK_ADDED, {
+    onData: ({ data: { data: { bookAdded } } }) => {
+      alert(`New book: ${bookAdded.title} by ${bookAdded.author.name}`);
+    }
+  })
 
   return (
     <div>
