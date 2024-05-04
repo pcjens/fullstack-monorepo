@@ -147,7 +147,7 @@ const resolvers = {
             const { title, author } = args;
             let authorObj = await Author.findOne({ name: author });
             if (authorObj && await Book.findOne({ title, author: authorObj._id }) != null) {
-                throw new GraphQLError(`A book by this title by this author already exists in the database!`, {
+                throw new GraphQLError('A book by this title by this author already exists in the database!', {
                     extensions: {
                         code: 'BAD_USER_INPUT',
                         invalidArgs: [title, author],
@@ -157,11 +157,29 @@ const resolvers = {
 
             if (authorObj == null) {
                 authorObj = new Author({ name: author });
-                await authorObj.save();
+                try {
+                    await authorObj.save();
+                } catch (error) {
+                    throw new GraphQLError(`Invalid author parameter: ${error.message}`, {
+                        extensions: {
+                            code: 'BAD_USER_INPUT',
+                            invalidArgs: [author],
+                        }
+                    });
+                }
             }
 
             const newBook = new Book({ ...args, author: authorObj._id });
-            await newBook.save();
+            try {
+                await newBook.save();
+            } catch (error) {
+                throw new GraphQLError(`Invalid book parameters: ${error.message}`, {
+                    extensions: {
+                        code: 'BAD_USER_INPUT',
+                        invalidArgs: [title, args.published, args.genres],
+                    }
+                });
+            }
             return newBook;
         },
 
@@ -175,7 +193,16 @@ const resolvers = {
                 author.born = setBornTo;
             }
 
-            await author.save();
+            try {
+                await author.save();
+            } catch (error) {
+                throw new GraphQLError(`Invalid author parameter: ${error.message}`, {
+                    extensions: {
+                        code: 'BAD_USER_INPUT',
+                        invalidArgs: [setBornTo],
+                    }
+                });
+            }
             return author;
         },
     },
