@@ -11,7 +11,7 @@ const Recommendations = (props) => {
   })
 
   useEffect(() => {
-    if (meQuery.data) {
+    if (meQuery.data?.me) {
       setFavoriteGenre(meQuery.data.me.favoriteGenre);
     }
   }, [meQuery.data]);
