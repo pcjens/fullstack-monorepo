@@ -162,7 +162,7 @@ const resolvers = {
     Query: {
         bookCount: async () => Book.collection.countDocuments(),
         authorCount: async () => Author.collection.countDocuments(),
-        allBooks: async (root, { author, genre }) => {
+        allBooks: async (root, { author, genre }, ctx, query) => {
             const filter = {};
             if (author) {
                 const { _id: authorId } = await Author.findOne({ name: author });
@@ -171,7 +171,9 @@ const resolvers = {
             if (genre) {
                 filter.genres = genre;
             }
-            return Book.find(filter);
+            const books = await Book.find(filter);
+            ctx.referencedAuthorIds = books.map((book) => book.author);
+            return books;
         },
         allAuthors: async () => Author.find({}),
         me: (root, args, { user }) => user,
@@ -283,7 +285,33 @@ const resolvers = {
     },
 
     Book: {
-        author: async ({ author }) => Author.findById(author),
+        author: async ({ author }, args, ctx) => {
+            // If the context has a full list of authors (e.g. the allBooks
+            // mutation sets referencedAuthorIds) and we haven't started loading
+            // them yet, start loading.
+            if (!ctx.prefetchedAuthors && ctx.referencedAuthorIds) {
+                ctx.prefetchedAuthors = new Promise(async (resolve) => {
+                    const authorMap = {};
+                    const authorList = await Author.find({ _id: { $in: ctx.referencedAuthorIds } });
+                    for (const author of authorList) {
+                        authorMap[author._id] = author;
+                    }
+                    resolve(authorMap);
+                });
+            }
+
+            // If we have a list of authors fetched via the above method, see if
+            // the author is in there.
+            if (ctx.prefetchedAuthors) {
+                const prefetched = (await ctx.prefetchedAuthors)[author];
+                if (prefetched) {
+                    return prefetched;
+                }
+            }
+
+            // Fall back to one-by-one case (e.g. for addBook):
+            return Author.findById(author);
+        },
     },
 
     Author: {
