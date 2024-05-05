@@ -1,4 +1,4 @@
-import { useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client'
 import { useState } from 'react'
 import { LOGIN, ME_QUERY_NAME } from '../queries'
 
@@ -6,9 +6,9 @@ const Login = ({ show, setToken, setPage, prevPage }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const apolloClient = useApolloClient();
 
   const [login] = useMutation(LOGIN, {
-    refetchQueries: [ME_QUERY_NAME],
     onError: (err) => setError(err.message),
   });
 
@@ -26,6 +26,7 @@ const Login = ({ show, setToken, setPage, prevPage }) => {
     const { login: { value: token } } = data;
     setToken(token);
     localStorage.setItem('books-login-token', token);
+    apolloClient.refetchQueries({ include: [ME_QUERY_NAME] });
     setPage(prevPage);
 
     setUsername('');
