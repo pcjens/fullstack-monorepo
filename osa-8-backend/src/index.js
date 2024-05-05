@@ -162,7 +162,7 @@ const resolvers = {
     Query: {
         bookCount: async () => Book.collection.countDocuments(),
         authorCount: async () => Author.collection.countDocuments(),
-        allBooks: async (root, { author, genre }, ctx, query) => {
+        allBooks: async (root, { author, genre }, ctx) => {
             const filter = {};
             if (author) {
                 const { _id: authorId } = await Author.findOne({ name: author });
@@ -172,10 +172,14 @@ const resolvers = {
                 filter.genres = genre;
             }
             const books = await Book.find(filter);
-            ctx.referencedAuthorIds = books.map((book) => book.author);
+            ctx.referencedAuthorIds = books.map(({ author }) => author);
             return books;
         },
-        allAuthors: async () => Author.find({}),
+        allAuthors: async (root, args, ctx) => {
+            const authors = await Author.find({});
+            ctx.referencedAuthorIds = authors.map(({ _id }) => _id);
+            return authors;
+        },
         me: (root, args, { user }) => user,
     },
 
@@ -315,7 +319,35 @@ const resolvers = {
     },
 
     Author: {
-        bookCount: async ({ name }) => {
+        bookCount: async ({ id, name }, args, ctx) => {
+            // If the context has a full list of authors (e.g. the allAuthors
+            // mutation sets referencedAuthorIds) and we haven't started loading
+            // the books made by them already, start loading. This is the single
+            // MongoDB query we need to fill out all the bookCounts in this
+            // entire GraphQL query, thus avoiding the n+1 problem.
+            if (!ctx.booksByReferencedAuthors && ctx.referencedAuthorIds) {
+                // Wrapping this Book.find in a Promise allows awaiting the same
+                // promise many times, which Book.find doesn't.
+                ctx.booksByReferencedAuthors = new Promise(async (resolve) => {
+                    const books = await Book.find({ author: { $in: ctx.referencedAuthorIds } }).select('author');
+                    resolve(books);
+                });
+            }
+
+            // If we have the list of books (fetched above), use that instead of
+            // doing a per-author countDocuments call.
+            if (ctx.booksByReferencedAuthors) {
+                const books = await ctx.booksByReferencedAuthors;
+                let count = 0;
+                for (const book of books) {
+                    if (book.author.toString() === id) {
+                        count++;
+                    }
+                }
+                return count;
+            }
+
+            // Fall back to one-by-one counts if there's no referencedAuthorIds.
             const { _id: author } = await Author.findOne({ name });
             return Book.collection.countDocuments({ author });
         }
