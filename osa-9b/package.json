@@ -1,12 +1,20 @@
 {
   "name": "osa-9b",
+  "main": "src/index.ts",
   "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node-dev src/index.ts",
     "ts-node": "ts-node",
-    "calculateBmi": "ts-node cli.ts bmi",
-    "calculateExercises": "ts-node cli.ts exercise"
+    "calculateBmi": "ts-node src/cli.ts bmi",
+    "calculateExercises": "ts-node src/cli.ts exercise"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
   }
 }
