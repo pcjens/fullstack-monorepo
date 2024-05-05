@@ -1,4 +1,4 @@
-function calculateBmi(heightCm: number, weightKg: number): string {
+export function calculateBmi(heightCm: number, weightKg: number): string {
     const heightM = heightCm / 100.0;
     const bmi = weightKg / (heightM * heightM);
     if (bmi < 18.5)
@@ -9,5 +9,3 @@ function calculateBmi(heightCm: number, weightKg: number): string {
         return "Overweight";
     return "Obese";
 }
-
-console.log(calculateBmi(180, 74))

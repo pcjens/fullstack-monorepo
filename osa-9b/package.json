@@ -2,7 +2,7 @@
   "name": "osa-9b",
   "scripts": {
     "ts-node": "ts-node",
-    "calculateBmi": "ts-node bmiCalculator.ts"
+    "calculateBmi": "ts-node -e 'console.log(require(\"./bmiCalculator\").calculateBmi(180, 74))'"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
