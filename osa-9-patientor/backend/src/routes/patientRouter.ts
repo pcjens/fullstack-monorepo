@@ -1,6 +1,6 @@
 import express from 'express';
 import patientService from '../services/patientService';
-import { NewPatient } from '../types';
+import { parseNewPatient } from '../utils';
 
 const router = express.Router();
 
@@ -9,10 +9,17 @@ router.get('/', (_req, res) => {
 });
 
 router.post('/', (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const newPatient: NewPatient = req.body;
-    const createdPatient = patientService.createPatient(newPatient);
-    res.send(createdPatient);
+    try {
+        const newPatient = parseNewPatient(req.body);
+        const createdPatient = patientService.createPatient(newPatient);
+        res.json(createdPatient);
+    } catch (err) {
+        let errorMessage = 'Failed to create a patient record.';
+        if (err instanceof Error) {
+            errorMessage += ' Error: ' + err.message;
+        }
+        res.status(400).send(errorMessage);
+    }
 });
 
 export default router;
