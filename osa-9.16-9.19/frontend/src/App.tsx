@@ -13,6 +13,7 @@ function App() {
     const [inputWeather, setInputWeather] = useState('');
     const [inputComment, setInputComment] = useState('');
     const [formLocked, setFormLocked] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     useEffect(() => {
         fetch(DIARIES_API_URL).then((res) => {
@@ -43,15 +44,13 @@ function App() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newDiaryEntry)
-        }).then((res) => {
+        }).then((res: Response) => {
             if (!res.ok) {
-                res.text().then((err) => {
-                    console.error('The non-OK response from the diary entry creation endpoint: ' + err);
+                return res.text().then((err) => {
+                    throw new Error(err);
                 });
-                console.error('Failed to create new diary entry, was:', newDiaryEntry);
-                throw new Error('Got a non-OK response from the diary entry creation endpoint');
             }
-            res.json().then((json) => {
+            return res.json().then((json) => {
                 const newDiaryEntry = toNonSensitiveDiaryEntry(json);
                 setDiaryEntries(diaryEntries.concat(newDiaryEntry));
 
@@ -59,10 +58,11 @@ function App() {
                 setInputVisibility('');
                 setInputWeather('');
                 setInputComment('');
+                setFormError(null);
                 setFormLocked(false);
             });
-        }).catch((err: Error) => {
-            console.error('Error adding diary entry:', err);
+        }).catch((err: unknown) => {
+            setFormError('Failed to add entry. ' + err);
             setFormLocked(false);
         });
     }
@@ -70,6 +70,7 @@ function App() {
     return (
         <div>
             <h3>Add new entry</h3>
+            {formError ? (<p>{formError}</p>) : ''}
             <form onSubmit={submitNewDiary}>
                 date <input
                     value={inputDate}
