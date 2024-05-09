@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NonSensitiveDiaryEntry } from "./types";
+import { NonSensitiveDiaryEntry, Visibility, Weather } from "./types";
 import DiaryEntrySummary from "./components/DiaryEntrySummary";
 import { toArray, toNonSensitiveDiaryEntry } from "./utils";
 
@@ -72,22 +72,40 @@ function App() {
             <h3>Add new entry</h3>
             {formError ? (<p>{formError}</p>) : ''}
             <form onSubmit={submitNewDiary}>
-                date <input
-                    value={inputDate}
-                    onChange={({ target }) => setInputDate(target.value)} />
-                <br />
-                visibility <input
-                    value={inputVisibility}
-                    onChange={({ target }) => setInputVisibility(target.value)} />
-                <br />
-                weather <input
-                    value={inputWeather}
-                    onChange={({ target }) => setInputWeather(target.value)} />
-                <br />
-                comment <input
-                    value={inputComment}
-                    onChange={({ target }) => setInputComment(target.value)} />
-                <br />
+                <div>
+                    date <input type="date"
+                        value={inputDate}
+                        onChange={({ target }) => setInputDate(target.value)} />
+                </div>
+                <div>
+                    comment <input
+                        value={inputComment}
+                        onChange={({ target }) => setInputComment(target.value)} />
+                </div>
+                <fieldset>
+                    <legend>visibility</legend>
+                    {Object.values(Visibility).map((v) => v.toString()).map((visOption) => (
+                        <div key={visOption}>
+                            <input type='radio' name='visibility'
+                                id={`visibility-${visOption}`} value={visOption}
+                                checked={inputVisibility === visOption}
+                                onChange={({ target }) => setInputVisibility(target.value)} />
+                            <label htmlFor={`visibility-${visOption}`}>{visOption}</label>
+                        </div>
+                    ))}
+                </fieldset>
+                <fieldset>
+                    <legend>weather</legend>
+                    {Object.values(Weather).map((w) => w.toString()).map((weatherOption) => (
+                        <div key={weatherOption}>
+                            <input type='radio' name='weather'
+                                id={`weather-${weatherOption}`} value={weatherOption}
+                                checked={inputWeather === weatherOption}
+                                onChange={({ target }) => setInputWeather(target.value)} />
+                            <label htmlFor={`weather-${weatherOption}`}>{weatherOption}</label>
+                        </div>
+                    ))}
+                </fieldset>
                 <button type="submit" disabled={formLocked}>add</button>
             </form>
             <h3>Diary entries</h3>
