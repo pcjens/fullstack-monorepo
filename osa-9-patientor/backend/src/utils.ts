@@ -62,8 +62,17 @@ function isDate(maybeDate: string): boolean {
 }
 
 function parseEntry(maybeEntry: unknown): Entry {
-    if (typeof maybeEntry !== 'object') {
+    if (!maybeEntry || typeof maybeEntry !== 'object') {
         throw new Error('entry must be an object');
     }
-    return {};
+    if (!isEntry(maybeEntry)) {
+        throw new Error('entry must have a type');
+    }
+    return maybeEntry; // TODO: pick out the fields and validate each properly
+}
+
+function isEntry(maybeEntry: object): maybeEntry is Entry {
+    return 'type' in maybeEntry
+        && isString(maybeEntry.type)
+        && ['Hospital', 'HealthCheck', 'OccupationalHealthcare'].includes(maybeEntry.type);
 }
