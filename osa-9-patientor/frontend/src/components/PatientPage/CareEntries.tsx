@@ -10,9 +10,11 @@ interface CareEntriesProps {
 }
 
 const CareEntries = ({ entries, diagnoses }: CareEntriesProps) => {
+    const sortedEntries = [...entries];
+    sortedEntries.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
     return (
         <div>
-            {Object.values(entries).map((entry: Entry) => {
+            {sortedEntries.map((entry: Entry) => {
                 switch (entry.type) {
                     case 'HealthCheck':
                         return (<HealthCheckEntryCard key={entry.id} entry={entry} diagnoses={diagnoses} />);
