@@ -1,8 +1,9 @@
 import { useParams } from "react-router-dom";
-import { Patient } from "../types";
+import { Patient } from "../../types";
 import { useEffect, useState } from "react";
-import patientsService from '../services/patients';
+import patientsService from '../../services/patients';
 import { Alert, Box, Table, TableBody, TableCell, TableRow, Typography } from "@mui/material";
+import CareEntries from "./CareEntries";
 
 const PatientPage = () => {
     const params = useParams<{ id: string }>();
@@ -50,7 +51,7 @@ const PatientPage = () => {
                     {patient.name}
                 </Typography>
             </Box>
-            <Table>
+            <Table size={'small'}>
                 <TableBody>
                     <TableRow>
                         <TableCell>SSN</TableCell>
@@ -70,7 +71,15 @@ const PatientPage = () => {
                     </TableRow>
                 </TableBody>
             </Table>
-        </div>
+            <Box marginTop={'2em'}>
+                <Typography align="center" variant="h6">
+                    Entries
+                </Typography>
+            </Box>
+            {(patient.entries && patient.entries.length > 0)
+                ? (<CareEntries entries={patient.entries} />)
+                : (<p>No entries.</p>)}
+        </div >
     );
 };
 
