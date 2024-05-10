@@ -139,13 +139,14 @@ function parseBaseEntryWithoutId(maybeEntry: object): Omit<BaseEntry, 'id'> {
     return result;
 }
 
-function parseDiagnosisCodes(object: unknown): Array<Diagnosis['code']> {
-    if (!object || typeof object !== 'object' || !('diagnosisCodes' in object)) {
-        // we will just trust the data to be in correct form
-        return [] as Array<Diagnosis['code']>;
+function parseDiagnosisCodes(maybeDiagnosisCodes: unknown): Array<Diagnosis['code']> {
+    if (!Array.isArray(maybeDiagnosisCodes)) {
+        throw new Error('diagnosisCodes must be an array');
     }
-
-    return object.diagnosisCodes as Array<Diagnosis['code']>;
+    // ok to ignore most checks according to the material, not quite implemented
+    // the same as in the example because I'd rather operated on the "possible
+    // array" rather than the "object containing the possible array"
+    return maybeDiagnosisCodes as Array<Diagnosis['code']>;
 }
 
 function parseEntryType(type: string): Entry['type'] {
