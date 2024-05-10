@@ -1,9 +1,9 @@
-import { Alert, Box, Button, Card, CardActions, CardContent, IconButton, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardActions, CardContent, FormControlLabel, IconButton, Input, MenuItem, Radio, RadioGroup, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { DeleteRounded } from '@mui/icons-material';
 import { useState } from "react";
 import axios from "axios";
 
-import { Diagnosis, Entry, EntryWithoutId, Patient } from "../../types";
+import { Diagnosis, EntryWithoutId, Patient } from "../../types";
 import patientService from '../../services/patients';
 
 interface Props {
@@ -13,11 +13,11 @@ interface Props {
     setVisible: (arg: React.SetStateAction<boolean>) => void,
 }
 
-const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Props) => {
-    const [entryType, setEntryType] = useState<Entry['type']>('HealthCheck');
+const EditableCareEntry = ({ diagnoses, patient, setPatient, setVisible }: Props) => {
+    const [entryType, setEntryType] = useState<string>('HealthCheck');
     const [date, setDate] = useState('');
     const [specialist, setSpecialist] = useState('');
-    const [diagnoses, setDiagnoses] = useState<string[]>([]);
+    const [diagnosisCodes, setDiagnosisCodes] = useState<string[]>([]);
     const [description, setDescription] = useState<string>('');
 
     // HealthCheck params
@@ -49,7 +49,7 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                         date,
                         specialist,
                         healthCheckRating: Number(rating),
-                        diagnosisCodes: diagnoses,
+                        diagnosisCodes,
                         description,
                     };
                     break;
@@ -61,7 +61,7 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                         type: 'OccupationalHealthcare',
                         date,
                         specialist,
-                        diagnosisCodes: diagnoses,
+                        diagnosisCodes,
                         description,
                         employerName: employer,
                     };
@@ -78,7 +78,7 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                         type: 'Hospital',
                         date,
                         specialist,
-                        diagnosisCodes: diagnoses,
+                        diagnosisCodes,
                         description,
                         discharge: {
                             date: dischargeDate,
@@ -89,7 +89,9 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                 default:
                     throw new Error('Entry is not a valid selection, please pick one');
             }
+            console.log('sending:', entry);
             const savedEntry = await patientService.addEntry(patient.id, entry);
+            console.log('saved:', savedEntry);
             setPatient({
                 ...patient,
                 entries: (patient.entries ?? []).concat(savedEntry),
@@ -131,7 +133,7 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                             </TableRow>
                             <TableRow>
                                 <TableCell>Date</TableCell>
-                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-01'
+                                <TableCell><Input type='date' fullWidth
                                     value={date}
                                     onChange={({ target }) => setDate(target.value)} /></TableCell>
                             </TableRow>
@@ -144,13 +146,19 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
 
                             {entryType !== 'HealthCheck' ? '' : <TableRow>
                                 <TableCell>Rating</TableCell>
-                                <TableCell><TextField variant='standard' fullWidth placeholder='2'
-                                    value={rating} onChange={({ target }) => setRating(target.value)} /></TableCell>
+                                <TableCell>
+                                    <RadioGroup row value={rating} onChange={({ target }) => setRating(target.value)}>
+                                        <FormControlLabel value='0' control={<Radio />} label='Healthy' />
+                                        <FormControlLabel value='1' control={<Radio />} label='Low risk' />
+                                        <FormControlLabel value='2' control={<Radio />} label='High risk' />
+                                        <FormControlLabel value='3' control={<Radio />} label='Critical risk' />
+                                    </RadioGroup>
+                                </TableCell>
                             </TableRow>}
 
                             {entryType !== 'Hospital' ? '' : <TableRow>
                                 <TableCell>Discharged on</TableCell>
-                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-02'
+                                <TableCell><Input type='date' fullWidth
                                     value={dischargeDate}
                                     onChange={({ target }) => setDischargeDate(target.value)} /></TableCell>
                             </TableRow>}
@@ -173,13 +181,13 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                             </TableRow>}
                             {(entryType !== 'OccupationalHealthcare') ? '' : <TableRow>
                                 <TableCell style={{ paddingLeft: '2em' }}>From</TableCell>
-                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-01'
+                                <TableCell><Input type='date' fullWidth
                                     value={sickLeaveStartDate} disabled={!sickLeaveEnabled}
                                     onChange={({ target }) => setSickLeaveStartDate(target.value)} /></TableCell>
                             </TableRow>}
                             {(entryType !== 'OccupationalHealthcare') ? '' : <TableRow>
                                 <TableCell style={{ paddingLeft: '2em' }}>Until</TableCell>
-                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-03'
+                                <TableCell><Input type='date' fullWidth
                                     value={sickLeaveEndDate} disabled={!sickLeaveEnabled}
                                     onChange={({ target }) => setSickLeaveEndDate(target.value)} /></TableCell>
                             </TableRow>}
@@ -192,20 +200,24 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {diagnoses.map((diagnosis, index) => (
+                            {diagnosisCodes.map((diagnosis, index) => (
                                 <TableRow key={index}>
                                     <TableCell>
-                                        <TextField variant='standard' placeholder='M51.2'
+                                        <Select style={{ minWidth: '30ch' }}
                                             value={diagnosis}
                                             onChange={({ target }) => {
-                                                const newDiagnoses = [...diagnoses];
+                                                const newDiagnoses = [...diagnosisCodes];
                                                 newDiagnoses.splice(index, 1, target.value);
-                                                setDiagnoses(newDiagnoses);
-                                            }} />
+                                                setDiagnosisCodes(newDiagnoses);
+                                            }}>
+                                            {diagnoses.map(({ code, name }) => (
+                                                <MenuItem key={code} value={code}>{code} {name}</MenuItem>
+                                            ))}
+                                        </Select>
                                         <IconButton aria-label="delete" onClick={() => {
-                                            const newDiagnoses = [...diagnoses];
+                                            const newDiagnoses = [...diagnosisCodes];
                                             newDiagnoses.splice(index, 1);
-                                            setDiagnoses(newDiagnoses);
+                                            setDiagnosisCodes(newDiagnoses);
                                         }}>
                                             <DeleteRounded />
                                         </IconButton>
@@ -214,7 +226,7 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                             ))}
                             <TableRow>
                                 <TableCell>
-                                    <Button onClick={() => setDiagnoses(diagnoses.concat(''))}>
+                                    <Button onClick={() => setDiagnosisCodes(diagnosisCodes.concat(''))}>
                                         Add diagnosis
                                     </Button>
                                 </TableCell>
