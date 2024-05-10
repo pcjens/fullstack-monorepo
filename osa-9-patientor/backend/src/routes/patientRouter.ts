@@ -1,6 +1,6 @@
 import express from 'express';
 import patientService from '../services/patientService';
-import { parseNewPatient } from '../utils';
+import { parseNewEntry, parseNewPatient } from '../utils';
 
 const router = express.Router();
 
@@ -25,6 +25,20 @@ router.post('/', (req, res) => {
         res.json(createdPatient);
     } catch (err) {
         let errorMessage = 'Failed to create a patient record.';
+        if (err instanceof Error) {
+            errorMessage += ' Error: ' + err.message;
+        }
+        res.status(400).send(errorMessage);
+    }
+});
+
+router.post('/:id/entries', (req, res) => {
+    try {
+        const newEntry = parseNewEntry(req.body);
+        const createdEntry = patientService.addEntry(req.params.id, newEntry);
+        res.json(createdEntry);
+    } catch (err) {
+        let errorMessage = 'Failed to create a new entry.';
         if (err instanceof Error) {
             errorMessage += ' Error: ' + err.message;
         }
