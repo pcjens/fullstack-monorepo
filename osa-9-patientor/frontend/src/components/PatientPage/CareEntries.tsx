@@ -1,11 +1,12 @@
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { Entry } from "../../types";
+import { Diagnosis, Entry } from "../../types";
 
 interface CareEntriesProps {
     entries: Entry[],
+    diagnoses: Diagnosis[],
 }
 
-const CareEntries = ({ entries }: CareEntriesProps) => {
+const CareEntries = ({ entries, diagnoses }: CareEntriesProps) => {
     return (
         <Table>
             <TableHead>
@@ -20,7 +21,14 @@ const CareEntries = ({ entries }: CareEntriesProps) => {
                     return (
                         <TableRow key={entry.id}>
                             <TableCell>{entry.date}</TableCell>
-                            <TableCell>{(entry.diagnosisCodes ?? []).join(', ')}</TableCell>
+                            <TableCell>
+                                <ul>
+                                    {(entry.diagnosisCodes ?? []).map((code) => {
+                                        const diag = diagnoses.find((d) => d.code === code);
+                                        return (<li key={code}>{code} {diag?.name ?? ''}</li>);
+                                    })}
+                                </ul>
+                            </TableCell>
                             <TableCell>{entry.description}</TableCell>
                         </TableRow>
                     );

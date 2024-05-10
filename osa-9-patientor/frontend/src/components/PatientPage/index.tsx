@@ -1,11 +1,15 @@
 import { useParams } from "react-router-dom";
-import { Patient } from "../../types";
+import { Diagnosis, Patient } from "../../types";
 import { useEffect, useState } from "react";
 import patientsService from '../../services/patients';
 import { Alert, Box, Table, TableBody, TableCell, TableRow, Typography } from "@mui/material";
 import CareEntries from "./CareEntries";
 
-const PatientPage = () => {
+interface PatientPageProps {
+    diagnoses: Diagnosis[],
+}
+
+const PatientPage = ({ diagnoses }: PatientPageProps) => {
     const params = useParams<{ id: string }>();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -77,7 +81,7 @@ const PatientPage = () => {
                 </Typography>
             </Box>
             {(patient.entries && patient.entries.length > 0)
-                ? (<CareEntries entries={patient.entries} />)
+                ? (<CareEntries entries={patient.entries} diagnoses={diagnoses} />)
                 : (<p>No entries.</p>)}
         </div >
     );
