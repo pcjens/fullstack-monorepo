@@ -1,9 +1,9 @@
-import { Alert, Box, Button, Card, CardActions, CardContent, IconButton, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardActions, CardContent, IconButton, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { DeleteRounded } from '@mui/icons-material';
 import { useState } from "react";
 import axios from "axios";
 
-import { Diagnosis, EntryWithoutId, Patient } from "../../types";
+import { Diagnosis, Entry, EntryWithoutId, Patient } from "../../types";
 import patientService from '../../services/patients';
 
 interface Props {
@@ -14,11 +14,25 @@ interface Props {
 }
 
 const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Props) => {
+    const [entryType, setEntryType] = useState<Entry['type']>('HealthCheck');
     const [date, setDate] = useState('');
     const [specialist, setSpecialist] = useState('');
-    const [rating, setRating] = useState('');
     const [diagnoses, setDiagnoses] = useState<string[]>([]);
     const [description, setDescription] = useState<string>('');
+
+    // HealthCheck params
+    const [rating, setRating] = useState('');
+
+    // Hospital params
+    const [dischargeCriteria, setDischargeCriteria] = useState<string>('');
+    const [dischargeDate, setDischargeDate] = useState<string>('');
+
+    // OccupationalHealthcare params
+    const [employer, setEmployer] = useState<string>('');
+    const [sickLeaveEnabled, setSickLeave] = useState<boolean>(false);
+    const [sickLeaveStartDate, setSickLeaveStartDate] = useState<string>('');
+    const [sickLeaveEndDate, setSickLeaveEndDate] = useState<string>('');
+
     const [addable, setAddable] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -27,14 +41,54 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
         setAddable(false);
 
         try {
-            const entry: EntryWithoutId & { type: 'HealthCheck' } = {
-                type: 'HealthCheck',
-                date,
-                specialist,
-                healthCheckRating: Number(rating),
-                diagnosisCodes: diagnoses,
-                description,
-            };
+            let entry: EntryWithoutId;
+            switch (entryType) {
+                case 'HealthCheck':
+                    entry = {
+                        type: 'HealthCheck',
+                        date,
+                        specialist,
+                        healthCheckRating: Number(rating),
+                        diagnosisCodes: diagnoses,
+                        description,
+                    };
+                    break;
+                case 'OccupationalHealthcare': {
+                    if (sickLeaveEnabled && (!sickLeaveStartDate || !sickLeaveEndDate)) {
+                        throw new Error('Must specify both start and end date for sick leave.');
+                    }
+                    entry = {
+                        type: 'OccupationalHealthcare',
+                        date,
+                        specialist,
+                        diagnosisCodes: diagnoses,
+                        description,
+                        employerName: employer,
+                    };
+                    if (sickLeaveEnabled) {
+                        entry.sickLeave = {
+                            startDate: sickLeaveStartDate,
+                            endDate: sickLeaveEndDate,
+                        };
+                    }
+                    break;
+                }
+                case 'Hospital':
+                    entry = {
+                        type: 'Hospital',
+                        date,
+                        specialist,
+                        diagnosisCodes: diagnoses,
+                        description,
+                        discharge: {
+                            date: dischargeDate,
+                            criteria: dischargeCriteria,
+                        }
+                    };
+                    break;
+                default:
+                    throw new Error('Entry is not a valid selection, please pick one');
+            }
             const savedEntry = await patientService.addEntry(patient.id, entry);
             setPatient({
                 ...patient,
@@ -48,6 +102,8 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                 } else {
                     setError(err.message);
                 }
+            } else if (err instanceof Error) {
+                setError(err.message);
             } else {
                 setError('Something went wrong! ' + err);
             }
@@ -63,22 +119,70 @@ const EditableCareEntry = ({ diagnoses: _, patient, setPatient, setVisible }: Pr
                     <Table size="small">
                         <TableBody>
                             <TableRow>
+                                <TableCell>Entry</TableCell>
+                                <TableCell>
+                                    <Select style={{ width: '30ch' }}
+                                        value={entryType} onChange={({ target }) => setEntryType(target.value)}>
+                                        <MenuItem value='HealthCheck'>Regular checkup</MenuItem>
+                                        <MenuItem value='OccupationalHealthcare'>Occupational healthcare visit</MenuItem>
+                                        <MenuItem value='Hospital'>Hospital visit</MenuItem>
+                                    </Select>
+                                </TableCell>
+                            </TableRow>
+                            <TableRow>
                                 <TableCell>Date</TableCell>
-                                <TableCell><TextField variant='standard' placeholder='2000-01-01'
+                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-01'
                                     value={date}
                                     onChange={({ target }) => setDate(target.value)} /></TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>Specialist</TableCell>
-                                <TableCell><TextField variant='standard' placeholder='Dr. Mario'
+                                <TableCell><TextField variant='standard' fullWidth placeholder='Dr. Mario'
                                     value={specialist}
                                     onChange={({ target }) => setSpecialist(target.value)} /></TableCell>
                             </TableRow>
-                            <TableRow>
+
+                            {entryType !== 'HealthCheck' ? '' : <TableRow>
                                 <TableCell>Rating</TableCell>
-                                <TableCell><TextField variant='standard' placeholder='2'
+                                <TableCell><TextField variant='standard' fullWidth placeholder='2'
                                     value={rating} onChange={({ target }) => setRating(target.value)} /></TableCell>
-                            </TableRow>
+                            </TableRow>}
+
+                            {entryType !== 'Hospital' ? '' : <TableRow>
+                                <TableCell>Discharged on</TableCell>
+                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-02'
+                                    value={dischargeDate}
+                                    onChange={({ target }) => setDischargeDate(target.value)} /></TableCell>
+                            </TableRow>}
+                            {entryType !== 'Hospital' ? '' : <TableRow>
+                                <TableCell>For reason</TableCell>
+                                <TableCell><TextField variant='standard' fullWidth placeholder='No more symptoms.'
+                                    value={dischargeCriteria}
+                                    onChange={({ target }) => setDischargeCriteria(target.value)} /></TableCell>
+                            </TableRow>}
+
+                            {entryType !== 'OccupationalHealthcare' ? '' : <TableRow>
+                                <TableCell>Employer</TableCell>
+                                <TableCell><TextField variant='standard' fullWidth placeholder='Tarmon Teräs ja Tärpätti Ab'
+                                    value={employer}
+                                    onChange={({ target }) => setEmployer(target.value)} /></TableCell>
+                            </TableRow>}
+                            {entryType !== 'OccupationalHealthcare' ? '' : <TableRow>
+                                <TableCell>Sick leave?</TableCell>
+                                <TableCell><Switch value={sickLeaveEnabled} onClick={() => setSickLeave(!sickLeaveEnabled)} /></TableCell>
+                            </TableRow>}
+                            {(entryType !== 'OccupationalHealthcare') ? '' : <TableRow>
+                                <TableCell style={{ paddingLeft: '2em' }}>From</TableCell>
+                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-01'
+                                    value={sickLeaveStartDate} disabled={!sickLeaveEnabled}
+                                    onChange={({ target }) => setSickLeaveStartDate(target.value)} /></TableCell>
+                            </TableRow>}
+                            {(entryType !== 'OccupationalHealthcare') ? '' : <TableRow>
+                                <TableCell style={{ paddingLeft: '2em' }}>Until</TableCell>
+                                <TableCell><TextField variant='standard' fullWidth placeholder='2000-01-03'
+                                    value={sickLeaveEndDate} disabled={!sickLeaveEnabled}
+                                    onChange={({ target }) => setSickLeaveEndDate(target.value)} /></TableCell>
+                            </TableRow>}
                         </TableBody>
                     </Table>
                     <Table size="small">
